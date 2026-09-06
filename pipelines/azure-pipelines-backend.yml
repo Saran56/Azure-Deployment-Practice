@@ -1,0 +1,55 @@
+# Azure DevOps CI/CD Pipeline
+# Builds Docker image for Backend, pushes to ACR, and deploys to Azure App Service (Container)
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - backend/**
+
+variables:
+  azureSubscription: 'azure-service-connection' # Replace with your Azure DevOps Service Connection Name
+  appName: 'app-backend-demo-001'                # Replace with your Azure App Service Name
+  acrHost: 'acrproddemo001.azurecr.io'          # Replace with your Azure Container Registry Login Server
+  imageRepository: 'backend-api'
+  dockerfilePath: '$(Build.SourcesDirectory)/backend/Dockerfile'
+  tag: '$(Build.BuildId)'
+
+stages:
+- stage: BuildAndPush
+  displayName: 'Build and Push to ACR'
+  jobs:
+  - job: Build
+    displayName: 'Build & Push Docker Image'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: Docker@2
+      displayName: 'Login to ACR and Push Image'
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(azureSubscription)
+        tags: |
+          $(tag)
+          latest
+
+- stage: DeployToAppService
+  displayName: 'Deploy to App Service'
+  dependsOn: BuildAndPush
+  condition: succeeded()
+  jobs:
+  - job: Deploy
+    displayName: 'Deploy Container'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: AzureWebAppContainer@1
+      displayName: 'Azure Web App on Container Deploy'
+      inputs:
+        azureSubscription: $(azureSubscription)
+        appName: $(appName)
+        imageName: '$(acrHost)/$(imageRepository):$(tag)'
