@@ -47,7 +47,6 @@ stages:
   displayName: 'Build and Push'
 
   jobs:
-
   - job: Build
     displayName: 'Build Docker Image'
 
@@ -55,7 +54,6 @@ stages:
       vmImage: $(vmImageName)
 
     steps:
-
     - task: Docker@2
       displayName: 'Build and Push Docker Image'
       inputs:
@@ -75,11 +73,9 @@ stages:
   displayName: 'Deploy to Container Apps'
 
   dependsOn: Build
-
   condition: succeeded()
 
   jobs:
-
   - job: Deploy
     displayName: 'Deploy Backend to Container App'
 
@@ -87,12 +83,12 @@ stages:
       vmImage: $(vmImageName)
 
     steps:
-
     - task: AzureContainerApps@1
       displayName: 'Deploy Backend to Azure Container App'
       inputs:
         azureSubscription: '$(azureSubscription)'
         containerAppName: '$(containerAppName)'
         resourceGroup: '$(resourceGroup)'
+        acrName: 'acrazurepractice-gpgrf4d3c9bja9eg'
         imageToDeploy: '$(containerRegistry)/$(imageRepository):$(tag)'
         targetPort: '8080'
