@@ -1,6 +1,5 @@
 # Docker
 # Build and push an image to Azure Container Registry
-# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
 - main
@@ -9,27 +8,47 @@ resources:
 - repo: self
 
 variables:
-  # Container registry service connection established during pipeline creation
+  # Docker registry service connection
   dockerRegistryServiceConnection: '90971437-843c-4dcc-8cb2-dc089f0fb6b5'
+
   imageRepository: 'saranazuredeploymentpractice'
+
   containerRegistry: 'acrazurepractice-gpgrf4d3c9bja9eg.azurecr.io'
+
   dockerfilePath: '$(Build.SourcesDirectory)/backend/Dockerfile'
+
   tag: '$(Build.BuildId)'
 
-  # Agent VM image name
+  # Azure Resource Manager service connection
+  azureSubscription: 'azure-service-connection'
+
+  # Existing Container App
+  containerAppName: 'ca-backend'
+
+  resourceGroup: 'rg-azure-deployment-practice'
+
   vmImageName: 'ubuntu-latest'
 
+
 stages:
+
+# =========================
+# BUILD + PUSH TO ACR
+# =========================
 - stage: Build
-  displayName: Build and push stage
+  displayName: 'Build and Push'
   jobs:
+
   - job: Build
-    displayName: Build
+    displayName: 'Build Docker Image'
+
     pool:
       vmImage: $(vmImageName)
+
     steps:
+
     - task: Docker@2
-      displayName: Build and push an image to container registry
+      displayName: 'Build and Push Docker Image'
       inputs:
         command: buildAndPush
         repository: $(imageRepository)
@@ -37,3 +56,32 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+
+
+# =========================
+# DEPLOY TO CONTAINER APPS
+# =========================
+- stage: Deploy
+  displayName: 'Deploy to Container Apps'
+
+  dependsOn: Build
+  condition: succeeded()
+
+  jobs:
+
+  - job: Deploy
+    displayName: 'Deploy Backend'
+
+    pool:
+      vmImage: $(vmImageName)
+
+    steps:
+
+    - task: AzureContainerApps@1
+      displayName: 'Deploy Backend to Container App'
+      inputs:
+        azureSubscription: '$(azureSubscription)'
+        containerAppName: '$(containerAppName)'
+        resourceGroup: '$(resourceGroup)'
+        imageToDeploy: '$(containerRegistry)/$(imageRepository):$(tag)'
+        targetPort: '8080'
