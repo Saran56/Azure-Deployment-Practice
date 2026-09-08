@@ -89,6 +89,5 @@ stages:
         azureSubscription: '$(azureSubscription)'
         containerAppName: '$(containerAppName)'
         resourceGroup: '$(resourceGroup)'
-        acrName: 'acrazurepractice-gpgrf4d3c9bja9eg'
         imageToDeploy: '$(containerRegistry)/$(imageRepository):$(tag)'
         targetPort: '8080'
